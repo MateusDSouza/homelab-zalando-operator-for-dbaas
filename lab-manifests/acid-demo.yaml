@@ -1,0 +1,35 @@
+# acid-demo.yaml
+apiVersion: acid.zalan.do/v1
+kind: postgresql
+metadata:
+  name: acid-demo
+spec:
+  teamId: acid
+  numberOfInstances: 3
+  postgresql:
+    version: "17"
+    parameters:
+      max_connections: "100"
+  volume:
+    size: 1Gi
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+  users:
+    app_owner: [createdb]
+    app_user: []
+  databases:
+    appdb: app_owner
+# Adding the sidecar to export metrics
+  sidecars:
+  - name: exporter
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    ports:
+      - {name: metrics, containerPort: 9187}
+    env:
+      - name: DATA_SOURCE_URI
+        value: "localhost:5432/postgres?sslmode=require"
+      - name: DATA_SOURCE_USER
+        value: "$(POSTGRES_USER)"
+      - name: DATA_SOURCE_PASS
+        value: "$(POSTGRES_PASSWORD)"

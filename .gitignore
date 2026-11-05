@@ -1,0 +1,3 @@
+# cloned upstream operator source, not part of this lab
+postgres-operator/
+.DS_Store
