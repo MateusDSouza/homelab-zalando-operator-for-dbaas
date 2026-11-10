@@ -51,10 +51,39 @@ The operator, Patroni's tooling and WAL-G are all written in Go, so I wrote a mi
 
 How a fleet of thousands of instances could be run: several Kubernetes clusters to limit blast radius and API-server load, one operator per set of databases, namespaces per tenant (and why that is only a soft boundary), and why a database superuser is effectively a shell in the container. See [how_to_manage_in_prod.md](study-notes/how_to_manage_in_prod.md).
 
+## Interactive Runbooks & Operational Tooling
+
+To execute, verify, and debug this lab efficiently, the repository includes structured executable runbooks alongside a standard operational terminal toolset:
+
+### 1. Executable Runbooks (`lab-run-books/`)
+
+Step-by-step procedures are organized as [Runme](https://runme.dev/)-compatible Markdown files in [`lab-run-books/`](lab-run-books/). When opened in VS Code with the Runme extension, code blocks can be executed directly inside the cluster without manual copy-pasting:
+
+- [`01-environment-setup.md`](lab-run-books/01-environment-setup.md): Kind cluster provisioning and operator Helm installation
+- [`02-cluster-deployment.md`](lab-run-books/02-cluster-deployment.md): Deploying the 3-node HA Postgres cluster and checking Patroni topology
+- [`03-client-connectivity.md`](lab-run-books/03-client-connectivity.md): In-cluster `pgclient` setup, credential extraction, and read-write vs. read-only verification
+- [`04-pgbouncer-configuration.md`](lab-run-books/04-pgbouncer-configuration.md): Enabling PgBouncer pooler and benchmarking concurrency with `pgbench`
+- [`05-high-availability-drills.md`](lab-run-books/05-high-availability-drills.md): Automated continuous probe loop, primary pod crashes, and Kind node freeze drills
+- [`06-backup-and-recovery.md`](lab-run-books/06-backup-and-recovery.md): Local S3 storage, WAL-G archiving, base backups, and Point-In-Time Recovery (PITR) cloning
+- [`07-observability-setup.md`](lab-run-books/07-observability-setup.md): Enabling Prometheus `postgres_exporter` sidecar and inspecting metric endpoints
+- [`08-custom-tooling-test.md`](lab-run-books/08-custom-tooling-test.md): Compiling and testing the Go `failover-probe` client against the cluster
+
+### 2. Operational Terminal Tooling (`docs/terminal_workflow_guide.md`)
+
+Typing raw, lengthy CLI flags during real-time drills is slow and error-prone. The [Terminal Workflow Guide](docs/terminal_workflow_guide.md) outlines our recommended daily-driver workflow:
+
+- **Shell Aliases (`~/.zshrc`)**: Essential shortcuts for high-frequency commands (`k`, `kgp`, `kd`, `klf`, `kex`, `dps`).
+- **Context & Namespace Management (`kubectx` / `kubens`)**: Instantly switch clusters and lock your terminal to target namespaces without repetitive `-n` flags.
+- **Terminal UI (`k9s`)**: Interactive dashboard for live log streaming, pod shell sessions, and resource inspection.
+- **Parameterized Command Snippets (`navi`)**: Pre-configured cheat sheets in [`cheats/zalando-lab.cheat`](cheats/zalando-lab.cheat) that dynamically fetch namespaces, pods, cluster names, and secrets for interactive execution.
+
 ## Repository map
 
 | Path | Contents |
 | --- | --- |
+| [`lab-run-books/`](lab-run-books/) | Executable Runme markdown runbooks for step-by-step lab deployment, HA drills, backups, and pooling |
+| [`docs/`](docs/) | Operational documentation, including the [Terminal Workflow Guide](docs/terminal_workflow_guide.md) |
+| [`cheats/`](cheats/) | Parameterized [Navi](https://github.com/denisidoro/navi) cheat sheet (`zalando-lab.cheat`) for cluster and operator operations |
 | [`lab-manifests/`](lab-manifests/) | kind cluster, the `postgresql` cluster manifest (with exporter sidecar), the backup pod-environment ConfigMap |
 | [`exploring_zalando_operator.md`](study-notes/exploring_zalando_operator.md) | Installing the operator, CRDs, the operator configuration, pooler modes, failsafe mode |
 | [`deploying_instances.md`](study-notes/deploying_instances.md) | First 3-instance cluster and what the operator builds from it; operator vs Patroni responsibilities |

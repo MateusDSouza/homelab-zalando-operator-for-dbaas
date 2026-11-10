@@ -99,3 +99,4 @@ Now with the connection stablished I can then query and explore it!
 
 
 ## 1.2 Physical Structure of Database Cluster
+
