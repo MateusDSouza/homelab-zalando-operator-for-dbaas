@@ -5,7 +5,7 @@ kubectl get secret <secret_name> -n <namespace> -o jsonpath='{.data.<key>}' | ba
 
 $ namespace: kubectl get namespaces | awk 'NR>1 {print $1}'
 $ secret_name: kubectl get secrets -n <namespace> | awk 'NR>1 {print $1}'
-$ key: kubectl get secret <secret_name> -n <namespace> -o json | grep -A 10 '"data":' | grep -v 'data' | awk -F'"' '{print $2}'
+$ key: kubectl get secret <secret_name> -n <namespace> -o go-template='{{range $k, $v := .data}}{{$k}}{{"\n"}}{{end}}'
 
 # Extract and decode Application Owner password
 kubectl get secret app-owner.<cluster_name>.credentials.postgresql.acid.zalan.do -n <namespace> -o jsonpath='{.data.password}' | base64 --decode; echo
@@ -76,22 +76,22 @@ $ worker_node: docker ps --filter "status=paused" --format '{{.Names}}'
 % kubernetes, postgres, connectivity, port-forward
 
 # Port-forward the Primary (Master) service
-kubectl port-forward svc/<master_service> 5432:5432 -n <namespace>
+kubectl port-forward svc/<cluster_name> 5432:5432 -n <namespace>
 
 $ namespace: kubectl get namespaces | awk 'NR>1 {print $1}'
-$ master_service: kubectl get svc -n <namespace> -l spilo-role=master -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'
+$ cluster_name: kubectl get postgresql -n <namespace> -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'
 
 # Port-forward the Replica (Read-Only) service
-kubectl port-forward svc/<replica_service> 5433:5432 -n <namespace>
+kubectl port-forward svc/<cluster_name>-repl 5433:5432 -n <namespace>
 
 $ namespace: kubectl get namespaces | awk 'NR>1 {print $1}'
-$ replica_service: kubectl get svc -n <namespace> -l spilo-role=replica -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'
+$ cluster_name: kubectl get postgresql -n <namespace> -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'
 
-# Port-forward the PgBouncer pooler service
-kubectl port-forward svc/<pooler_service> 6432:6432 -n <namespace>
+# Port-forward the PgBouncer pooler service (the Service listens on 5432)
+kubectl port-forward svc/<cluster_name>-pooler 6432:5432 -n <namespace>
 
 $ namespace: kubectl get namespaces | awk 'NR>1 {print $1}'
-$ pooler_service: kubectl get svc -n <namespace> | grep pooler | awk '{print $1}'
+$ cluster_name: kubectl get postgresql -n <namespace> -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'
 
 # Open interactive psql shell via in-cluster pgclient pod
 kubectl exec -it <client_pod> -n <namespace> -- psql "host=<cluster_name> user=app_owner dbname=appdb sslmode=require"
@@ -112,7 +112,7 @@ $ spilo_pod: kubectl get pods -n <namespace> -l cluster-name=<cluster_name> -o j
 % kubernetes, postgres, logs, troubleshooting
 
 # Stream Zalando Postgres Operator logs
-kubectl logs -f -l name=postgres-operator -n <operator_namespace>
+kubectl logs -f deploy/postgres-operator -n <operator_namespace> --since=1m
 
 $ operator_namespace: kubectl get namespaces | awk 'NR>1 {print $1}'
 
@@ -123,8 +123,8 @@ $ namespace: kubectl get namespaces | awk 'NR>1 {print $1}'
 $ cluster_name: kubectl get postgresql -n <namespace> -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'
 $ spilo_pod: kubectl get pods -n <namespace> -l cluster-name=<cluster_name> -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'
 
-# Stream PgBouncer pooler logs
-kubectl logs -f <pooler_pod> -n <namespace>
+# Stream PgBouncer pooler logs (all pooler pods)
+kubectl logs -f deploy/<cluster_name>-pooler -n <namespace> --all-pods --prefix
 
 $ namespace: kubectl get namespaces | awk 'NR>1 {print $1}'
-$ pooler_pod: kubectl get pods -n <namespace> -l application=spilo-pooler -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'
+$ cluster_name: kubectl get postgresql -n <namespace> -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n'

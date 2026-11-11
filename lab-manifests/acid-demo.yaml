@@ -6,6 +6,11 @@ metadata:
 spec:
   teamId: acid
   numberOfInstances: 3
+  #enabling connection pooler as default for the deployment
+  enableConnectionPooler: true
+  connectionPooler:
+    numberOfInstances: 2
+    mode: transaction
   postgresql:
     version: "17"
     parameters:
